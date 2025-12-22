@@ -1,0 +1,108 @@
+{
+	"showStudyList": true,
+	"contourUnique": false,
+	"allowDraft": false,
+	"automatedLabelling": true,
+	"hideFreehandVertex": true,
+	"hideROIOutput": true,
+	"hideMeasurementOutput": true,
+	"defaultCircleDiameter": 10,
+	"enableSegmentationPanel": true,
+	"timerOn": true,
+	"timerVisible": true,
+	"useRadiologyOrientationForNiftiOverDicomOverlay": true,
+	"mouseActions": [
+		{
+			"toolName": "Zoom",
+			"button": "middle"
+		},
+		{
+			"toolName": "Pan",
+			"button": "right"
+		},
+		{
+			"toolName": "Wwwc",
+			"button": "left"
+		},
+		{
+			"toolName": "StackScrollMouseWheel",
+			"button": "wheel"
+		}
+	],
+	"wwwcPresets": {
+		"1": {
+			"description": "Soft tissue",
+			"window": "550",
+			"level": "40"
+		},
+		"2": {
+			"description": "Lung",
+			"window": "1600",
+			"level": "-600"
+		},
+		"3": {
+			"description": "Liver",
+			"window": "150",
+			"level": "90"
+		},
+		"4": {
+			"description": "Bone",
+			"window": "2500",
+			"level": "480"
+		},
+		"5": {
+			"description": "Brain",
+			"window": "1.0",
+			"level": "0.7"
+		},
+		"6": {
+			"description": "Trest",
+			"window": "1",
+			"level": "1"
+		},
+		"7": {
+			"description": "QSM",
+			"window": "0.21",
+			"level": "0.02"
+		},
+		"8": {
+			"description": "SWI",
+			"window": "1.0",
+			"level": "0.68"
+		},
+		"9": {
+			"description": "",
+			"window": "",
+			"level": ""
+		},
+		"10": {
+			"description": "",
+			"window": "",
+			"level": ""
+		}
+	},
+	"overlay": {
+		"topLeft": [
+			"Image Size: {rows:required} נ{columns:required}",
+			"WL: {windowCenter:required} WW: {windowWidth:required}",
+			"X: {imageX}px Y: {imageY}px | Value: {modalityPixelValue:required} HU",
+			"Thickness: {sliceThickness:required} mm Location: {sliceLocation:required} mm"
+		],
+		"topRight": [
+			"{patientId}",
+			"{patientName}",
+			"{studyDescription}",
+			"{seriesDescription}"
+		],
+		"bottomRight": [
+			"{echoTime:required}:{repetitionTime:required}",
+			"{magneticFieldStrength:required}",
+			"{acquisitionDate} {acquisitionTime}",
+			"{protocolName}"
+		],
+		"bottomLeft": [
+			"Zoom: {zoomPercentage:required}%",
+			"Im: {imageIndex:required}/{stackSize:required}      Series: {seriesNumber:required}"
+		]
+	}
+}

@@ -1,0 +1,299 @@
+{
+	"studyForm": {
+		"components": [
+			{
+				"html": "<h1>Reconstruction</h1>"
+			},
+			{
+				"label": "Is the series complete?",
+				"key": "series_complete",
+				"type": "dropdown",
+				"values": [
+					{
+						"value": "Complete",
+						"label": "Complete"
+					},
+					{
+						"value": "Incomplete",
+						"label": "Incomplete"
+					}
+				]
+			},
+			{
+				"label": " ",
+				"key": "series_complete_comment_open",
+				"type": "radio",
+				"values": [
+					{
+						"label": " Comment?",
+						"value": true
+					}
+				]
+			},
+			{
+				"label": "",
+				"key": "series_complete_comment",
+				"type": "textarea",
+				"hidden": true,
+				"conditional": {
+					"json": {
+						"==": [
+							{
+								"var": "series_complete_comment_open"
+							},
+							true
+						]
+					}
+				}
+			},
+			{
+				"label": "Does the series have motion artifact?",
+				"key": "series_motion_artifact",
+				"type": "dropdown",
+				"values": [
+					{
+						"value": "Pass",
+						"label": "Pass"
+					},
+					{
+						"value": "Mild",
+						"label": "Mild"
+					},
+					{
+						"value": "Moderate",
+						"label": "Moderate"
+					},
+					{
+						"value": "Severe",
+						"label": "Severe"
+					}
+				]
+			},
+			{
+				"label": " ",
+				"key": "series_motion_artifact_comment_open",
+				"type": "radio",
+				"values": [
+					{
+						"label": " Comment?",
+						"value": true
+					}
+				]
+			},
+			{
+				"label": "motion artifact",
+				"key": "motion_artifact_comment",
+				"type": "textarea",
+				"conditional": {
+					"json": {
+						"==": [
+							{
+								"var": "motion_artifact_comment_open"
+							},
+							true
+						]
+					}
+				}
+			},
+			{
+				"label": "Is the fov cut off?",
+				"key": "series_fov_cut_off",
+				"type": "dropdown",
+				"values": [
+					{
+						"value": "Pass",
+						"label": "Pass"
+					},
+					{
+						"value": "Mild",
+						"label": "Mild"
+					},
+					{
+						"value": "Moderate",
+						"label": "Moderate"
+					},
+					{
+						"value": "Severe",
+						"label": "Severe"
+					}
+				]
+			},
+			{
+				"label": " ",
+				"key": "series_fov_cut_off_comment_open",
+				"type": "radio",
+				"values": [
+					{
+						"label": " Comment?",
+						"value": true
+					}
+				]
+			},
+			{
+				"label": "series fov cut off",
+				"key": "series_fov_cut_off_comment",
+				"type": "textarea",
+				"conditional": {
+					"json": {
+						"==": [
+							{
+								"var": "series_fov_cut_off_comment_open"
+							},
+							true
+						]
+					}
+				}
+			},
+			{
+				"label": "Artifacts"
+			},
+			{
+				"label": "Field inhomogeneity?",
+				"key": "inhomogeneity",
+				"type": "dropdown",
+				"values": [
+					{
+						"value": "Pass",
+						"label": "Pass"
+					},
+					{
+						"value": "Mild",
+						"label": "Mild"
+					},
+					{
+						"value": "Moderate",
+						"label": "Moderate"
+					},
+					{
+						"value": "Severe",
+						"label": "Severe"
+					}
+				]
+			},
+			{
+				"label": " ",
+				"key": "inhomogeneity_comment_open",
+				"type": "radio",
+				"values": [
+					{
+						"label": " Comment?",
+						"value": true
+					}
+				]
+			},
+			{
+				"label": "inhomogeneity",
+				"key": "inhomogeneity_comment",
+				"type": "textarea",
+				"conditional": {
+					"json": {
+						"==": [
+							{
+								"var": "inhomogeneity_comment_open"
+							},
+							true
+						]
+					}
+				}
+			},
+			{
+				"label": "Ghosting or wrapping?",
+				"key": "ghosting_wrapping",
+				"type": "dropdown",
+				"values": [
+					{
+						"value": "Pass",
+						"label": "Pass"
+					},
+					{
+						"value": "Mild",
+						"label": "Mild"
+					},
+					{
+						"value": "Moderate",
+						"label": "Moderate"
+					},
+					{
+						"value": "Severe",
+						"label": "Severe"
+					}
+				]
+			},
+			{
+				"label": " ",
+				"key": "ghosting_wrapping_comment_open",
+				"type": "radio",
+				"values": [
+					{
+						"label": " Comment?",
+						"value": true
+					}
+				]
+			},
+			{
+				"label": "ghosting wrapping",
+				"key": "ghosting_wrapping_comment",
+				"type": "textarea",
+				"conditional": {
+					"json": {
+						"==": [
+							{
+								"var": "ghosting_wrapping_comment_open"
+							},
+							true
+						]
+					}
+				}
+			},
+			{
+				"label": "Visible banding?",
+				"key": "banding",
+				"type": "dropdown",
+				"values": [
+					{
+						"value": "Pass",
+						"label": "Pass"
+					},
+					{
+						"value": "Mild",
+						"label": "Mild"
+					},
+					{
+						"value": "Moderate",
+						"label": "Moderate"
+					},
+					{
+						"value": "Severe",
+						"label": "Severe"
+					}
+				]
+			},
+			{
+				"label": " ",
+				"key": "banding_comment_open",
+				"type": "radio",
+				"values": [
+					{
+						"label": " Comment?",
+						"value": true
+					}
+				]
+			},
+			{
+				"label": "banding",
+				"key": "banding_comment",
+				"type": "textarea",
+				"conditional": {
+					"json": {
+						"==": [
+							{
+								"var": "banding_comment_open"
+							},
+							true
+						]
+					}
+				}
+			}
+		]
+	}
+}

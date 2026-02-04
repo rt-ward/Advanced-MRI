@@ -3,17 +3,16 @@
 import argparse
 import json
 import logging
+import os
 import sys
-import zipfile
 import tempfile
+import zipfile
+from os import path
 from typing import Dict, List, Optional
 
-import pydicom
 import flywheel
-
-from os import path
+import pydicom
 from fw_client import FWClient
-
 
 ###############################################################################
 # Logging Setup
@@ -30,6 +29,7 @@ logger.addHandler(handler)
 ###############################################################################
 # Flywheel Connector
 ###############################################################################
+
 
 class FlywheelConnector:
     """
@@ -69,7 +69,7 @@ class FlywheelConnector:
         self.project = None
 
         self.RestClient: FWClient = FWClient(api_key=self.APIKey)
-        self.SDKClient: flywheel.Client = flywheel.Client(self.APIKey)
+        self.SDKClient = flywheel.Client(self.APIKey)
 
         self.imageList: List = []
         self.sessionList: List = []
@@ -104,7 +104,7 @@ class FlywheelConnector:
         for p in project_list:
             if p.label.startswith(project_name):
                 try:
-                    self.project = self.SDKClient.get_project(p._id)
+                    self.project = self.SDKClient.get_project(p._id)  # noqa: SLF001
                 except Exception as e:
                     logger.error(f"Cannot fetch project '{project_name}' via SDK: {e}")
                     raise
@@ -174,11 +174,12 @@ class FlywheelConnector:
 # Upload Image Data
 ###############################################################################
 
+
 class UploadImageData:
     """
     UploadImageData
     ----------------
-    Responsible for uploading DICOMs from an input ZIP file to Flywheel.  
+    Responsible for uploading DICOMs from an input ZIP file to Flywheel.
     Files are grouped by SeriesInstanceUID and uploaded as per-series ZIPs.
 
     Parameters
@@ -217,7 +218,7 @@ class UploadImageData:
 
         self.baseName, _ = path.splitext(path.basename(fileSpec))
 
-    def uploadImages(self, segIndex: int) -> None:
+    def uploadImages(self, segIndex: int) -> None:  # noqa: C901
         """
         Extract, group, package, and upload DICOMs to Flywheel.
 
@@ -268,7 +269,9 @@ class UploadImageData:
         logger.info(f"Found {len(acqList)} subjects in archive.")
 
         for subject_label, file_list in acqList.items():
-            logger.info(f"Processing subject {subject_label} with {len(file_list)} files…")
+            logger.info(
+                f"Processing subject {subject_label} with {len(file_list)} files…"
+            )
 
             with tempfile.TemporaryDirectory() as tmpDir:
                 zipFiles: Dict[str, List[str]] = {}
@@ -278,7 +281,9 @@ class UploadImageData:
                 try:
                     for f in file_list:
                         self.zip.extract(f, path=tmpDir)
-                        meta = pydicom.dcmread(path.join(tmpDir, f), stop_before_pixels=True)
+                        meta = pydicom.dcmread(
+                            path.join(tmpDir, f), stop_before_pixels=True
+                        )
 
                         suid = meta.get((0x0020, 0x000E)).value
                         studyDate = meta.get((0x0008, 0x0020)).value
@@ -289,7 +294,9 @@ class UploadImageData:
                         zipDates.setdefault(suid, []).append(studyDate)
 
                 except Exception as e:
-                    logger.error(f"Metadata extraction failure for subject {subject_label}: {e}")
+                    logger.error(
+                        f"Metadata extraction failure for subject {subject_label}: {e}"
+                    )
                     continue
 
                 for suid, file_group in zipFiles.items():
@@ -314,7 +321,9 @@ class UploadImageData:
                         session_label = f"{date_str}_MRI"
                         acquisition_label = segments[segIndex + 1]
 
-                        subject = self.fc.project.subjects.find_first(f"label={subject_label}")
+                        subject = self.fc.project.subjects.find_first(
+                            f"label={subject_label}"
+                        )
                         if not subject:
                             logger.info(f"Creating new subject: {subject_label}")
                             subject = self.fc.project.add_subject(label=subject_label)
@@ -324,10 +333,14 @@ class UploadImageData:
                             logger.info(f"Creating session: {session_label}")
                             session = subject.add_session(label=session_label)
 
-                        acquisition = session.acquisitions.find_first(f"label={acquisition_label}")
+                        acquisition = session.acquisitions.find_first(
+                            f"label={acquisition_label}"
+                        )
                         if not acquisition:
                             logger.info(f"Creating acquisition: {acquisition_label}")
-                            acquisition = session.add_acquisition(label=acquisition_label)
+                            acquisition = session.add_acquisition(
+                                label=acquisition_label
+                            )
 
                         logger.info(f"Uploading {zipFileName}…")
                         acquisition.upload_file(zipPath, metadata={"type": "dicom"})
@@ -342,6 +355,7 @@ class UploadImageData:
 ###############################################################################
 # Configuration
 ###############################################################################
+
 
 class Config:
     """
@@ -394,6 +408,7 @@ class Config:
 # Main
 ###############################################################################
 
+
 def main() -> None:
     """
     Entry point for the LONI → Flywheel upload tool.
@@ -424,7 +439,11 @@ def main() -> None:
     segIndex = int(args.segIndex) if args.segIndex else 1
 
     config = Config(path.join(".", "fwImageUpload.conf"))
-    api_key = config.get("APIKey")
+    api_key = os.getenv("FLYWHEEL_API_KEY") or config.get("APIKey")
+    if not api_key:
+        raise ValueError(
+            "FLYWHEEL_API_KEY environment variable or config APIKey required"
+        )
     project_name = config.get("project")
 
     if not api_key or not project_name:

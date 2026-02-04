@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "advanced-mri"
+version = "0.1.0"
+description = "Advanced MRI processing tools for CLARiTI and SCAN workflows"
+requires-python = ">=3.12"
+dependencies = [
+    "flywheel-sdk>=21.3.0",
+    "pydicom>=3.0.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["ImageUploading", "QSMxT"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["A", "B", "E", "W", "F", "I", "RUF", "SIM", "C90", "PLW0406", "COM818", "SLF001"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = [
+    "--cov=image_uploading",
+    "--cov=qsmxt", 
+    "--cov-report=html",
+    "--cov-report=term-missing"
+]

@@ -15,13 +15,14 @@ Environment Assumptions:
 - Filesystem paths /dicoms, /bids, /qsm are writable.
 """
 
-import shutil
-import subprocess
 import glob
 import os
+import shutil
+import subprocess
 import sys
-from pathlib import Path
 import zipfile
+from pathlib import Path
+
 import flywheel
 
 
@@ -63,7 +64,7 @@ def flywheel_run():
             "/bids/",
             "--auto_yes",
         ],
-        description="DICOM → BIDS conversion (MEGRE)",
+        description="DICOM to BIDS conversion (MEGRE)",
     )
 
     ###########################################################################
@@ -85,17 +86,20 @@ def flywheel_run():
         important_parts = [
             s for s in first_file.name.split("_") if "sub" in s or "ses" in s
         ]
-        t1_target_name = "_".join(important_parts + ["T1w"])
+        t1_target_name = [*important_parts, "T1w"]
 
         run_cmd(
             [
                 "dcm2niix",
-                "-b", "y",
-                "-f", t1_target_name,
-                "-o", str(first_file.parent),
+                "-b",
+                "y",
+                "-f",
+                t1_target_name,
+                "-o",
+                str(first_file.parent),
                 "/dicoms/T1w/",
             ],
-            description="T1w DICOM → NIfTI conversion",
+            description="T1w DICOM to NIfTI conversion",
         )
     else:
         print("WARNING: No MEGRE anat/*.nii found. Skipping T1w renaming.")
@@ -107,7 +111,8 @@ def flywheel_run():
         "qsmxt",
         "/bids",
         "/qsm",
-        "--premade", str(config.get("premade", "False")),
+        "--premade",
+        str(config.get("premade", "False")),
         "--do_qsm",
         "--do_swi",
         "--do_segmentation",
@@ -166,4 +171,3 @@ def flywheel_run():
 
 if __name__ == "__main__":
     flywheel_run()
-d

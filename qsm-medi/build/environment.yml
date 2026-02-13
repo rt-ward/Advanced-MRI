@@ -1,0 +1,9 @@
+name: pipeline_qsm
+channels:
+  - defaults
+dependencies:
+  - python=3.8
+  - nibabel==5.1.0
+  - pip
+  - pip:
+    - flywheel-sdk

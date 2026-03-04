@@ -8,7 +8,7 @@
   "url": "https://github.com/QSMxT/QSMxT",
   "source": "https://github.com/QSMxT/qsmxt-flywheel",
   "license": "GPL-3.0",
-  "version": "qsmxt_8.1.3_3",
+  "version": "qsmxt_8.1.3_5",
   "environment": {
     "PATH": "/opt/miniconda-4.12.0/bin:/opt/ants-2.4.3/bin:/opt/ants-2.4.3/Scripts:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/FastSurfer:/opt/miniconda-latest/bin:/opt/bru2:/opt/julia-1.9.3/bin:/opt/node-v14.17.0-linux-x64/bin",
     "SUBJECTS_DIR": "/tmp",
@@ -30,7 +30,7 @@
   "custom": {
     "gear-builder": {
       "category": "analysis",
-      "image": "naccdata.flywheel.io/qsmxt_flywheel_8.1.3_3"
+      "image": "naccdata.flywheel.io/qsmxt_flywheel_8.1.3_5"
     },
     "flywheel": {
       "suite": "QSMxT"
@@ -70,6 +70,26 @@
         ]
       },
       "description": "QSM image (in a compressed .ZIP folder)"
+    },
+    "input_file_opt": {
+      "base": "file",
+      "type": {
+        "enum": [
+          "dicom"
+        ]
+      },
+      "optional": true,
+      "description": "QSM optional image (in a compressed .ZIP folder)"
+    },
+    "input_file_opt2": {
+      "base": "file",
+      "type": {
+        "enum": [
+          "dicom"
+        ]
+      },
+      "optional": true,
+      "description": "QSM optional image (in a compressed .ZIP folder)"
     },
     "anatomical": {
       "base": "file",

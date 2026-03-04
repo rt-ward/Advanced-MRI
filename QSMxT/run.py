@@ -26,7 +26,7 @@ from pathlib import Path
 import flywheel
 
 
-def run_cmd(cmd: list[str], description: str):
+def run_cmd(cmd, description):
     """Run a shell command with logging + error trapping."""
     print(f"\n[CMD] {description}: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -43,7 +43,10 @@ def flywheel_run():
     """Main Flywheel gear execution."""
     with flywheel.GearContext() as context:
         config = context.config
-        dicom_megre_zip = context.get_input_path("input_file")
+        dicom_megre_zip = []
+        dicom_megre_zip.append(context.get_input_path("input_file"))
+        dicom_megre_zip.append(context.get_input_path("input_file_opt"))
+        dicom_megre_zip.append(context.get_input_path("input_file_opt2"))
         dicom_t1w_zip = context.get_input_path("anatomical")
         out_dir = context.output_dir
 
@@ -51,8 +54,10 @@ def flywheel_run():
     # Step 1: Unzip MEGRE DICOMs
     ###########################################################################
     print(f"Unzipping MEGRE DICOMs: {dicom_megre_zip}")
-    with zipfile.ZipFile(dicom_megre_zip, "r") as zf:
-        zf.extractall("/dicoms/qsm")
+    for i in range(len(dicom_megre_zip)):
+        if dicom_megre_zip[i] != None:
+            with zipfile.ZipFile(dicom_megre_zip[i], "r") as zf:
+                zf.extractall("/dicoms/qsm")
 
     ###########################################################################
     # Step 2: Convert MEGRE DICOMs to BIDS using dicom-convert
@@ -71,8 +76,9 @@ def flywheel_run():
     # Step 3: Unzip T1w anatomical DICOMs
     ###########################################################################
     print(f"Unzipping T1w DICOMs: {dicom_t1w_zip}")
-    with zipfile.ZipFile(dicom_t1w_zip, "r") as zf:
-        zf.extractall("/dicoms/T1w")
+    if dicom_t1w_zip != None:
+        with zipfile.ZipFile(dicom_t1w_zip, "r") as zf:
+            zf.extractall("/dicoms/T1w")
 
     ###########################################################################
     # Step 4: Convert T1w DICOMs into BIDS-compatible naming
@@ -86,7 +92,7 @@ def flywheel_run():
         important_parts = [
             s for s in first_file.name.split("_") if "sub" in s or "ses" in s
         ]
-        t1_target_name = [*important_parts, "T1w"]
+        t1_target_name = "_".join(important_parts + ["T1w"])
 
         run_cmd(
             [
@@ -96,8 +102,7 @@ def flywheel_run():
                 "-f",
                 t1_target_name,
                 "-o",
-                str(first_file.parent),
-                "/dicoms/T1w/",
+                str(first_file.parent)
             ],
             description="T1w DICOM to NIfTI conversion",
         )

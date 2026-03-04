@@ -216,7 +216,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Project-specific
-*.conf
+*.configuration
 !*.conf.example
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Flywheel Gear: QSMxT Processing Pipeline
+Flywheel Gear: QSMxT Processing Pipeline.
 
 This gear:
 1. Unzips MEGRE and T1w DICOM archives.
@@ -40,7 +40,7 @@ def run_cmd(cmd: list[str], description: str):
 
 
 def flywheel_run():
-    """Main Flywheel gear execution."""
+    """Execute main Flywheel gear workflow."""
     with flywheel.GearContext() as context:
         config = context.config
         dicom_megre_zip = context.get_input_path("input_file")

@@ -1,0 +1,152 @@
+{
+  "name": "qsm-medi",
+  "label": "Quantitative Susceptibility Mapping (QSM) using Morphology Enabled Dipole Inversion (MEDI)",
+  "description": "Quantitative Susceptibility Mapping (QSM) using the Morphology Enabled Dipole Inversion (MEDI) with maximum spherical mean value filtering (mSMV).",
+  "version": "2.2.0",
+  "author": "Arnold Evia, <arnold_evia@rush.edu>",
+  "maintainer": "",
+  "cite": "doi: 10.1016/j.neuroimage.2011.08.082, doi: 10.1111/jon.12923, doi: 10.1002/mrm.25137, doi: 10.1002/nbm.1670, doi: 10.1002/mrm.28563, doi: 10.1002/mrm.24272, doi: 10.1002/mrm.29963, doi: 10.1002/hbm.24750",
+  "url": "",
+  "source": "",
+  "license": "BSD-3-Clause",
+  "environment": {
+    "CONDA_DIR": "/opt/miniconda-py38_23.5.2-0",
+    "LD_LIBRARY_PATH": ":/usr/lib/x86_64-linux-gnu:/opt/MCR-2018b/v95/runtime/glnxa64:/opt/MCR-2018b/v95/bin/glnxa64:/opt/MCR-2018b/v95/sys/os/glnxa64:/opt/MCR-2018b/v95/extern/bin/glnxa64",
+    "MATLABCMD": "/opt/MCR-2018b/2018b/toolbox/matlab",
+    "MCRROOT": "/opt/MCR-2018b/2018b",
+    "PATH": "/opt/dcm2niix-7d295ff5e9f4b31227b9ef4c89e0118ddef457a6/bin:/opt/miniconda-py38_23.5.2-0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "PWD": "/opt/HD-BET",
+    "XAPPLRESDIR": "/opt//opt/MCR-2018b/v95/x11/app-defaults"
+  },
+  "custom": {
+    "gear-builder": {
+      "category": "analysis",
+      "image": "aevia.azurecr.io/qsm-medi:2.2.0"
+    },
+    "flywheel": {
+      "suite": "QSM-MEDI"
+    }
+  },
+  "config": {
+    "load_negate_every_other_axis": {
+      "description": "Axis to apply preprocessing fix on real and imaginary data by negating every other slice along an axis. can only have values of 'row', 'col', or 'slice'",
+      "type": "string",
+      "enum": [
+        "row",
+        "col",
+        "slice"
+      ],
+      "optional": true
+    },
+    "method_phase_unwrap": {
+      "description": " Choice of phase unwrap method. Can only have values of 'romeo' or 'laplacian'. laplacian works better on data containing open ended fringe lines",
+      "type": "string",
+      "default": "romeo",
+      "enum": [
+        "romeo",
+        "laplacian"
+      ]
+    },
+    "invert_phase": {
+      "description": " Use the complex conjugate of the original data. Setting this to 1 results in the original QSM map with negated values.",
+      "type": "integer",
+      "default": 0
+    },
+    "csf_thresh_R2s": {
+      "description": " R2 star threshold for extract_all_CSF()",
+      "type": "integer",
+      "default": 5
+    },
+    "pdf_tol": {
+      "description": "Tolerance level for PDF",
+      "type": "number",
+      "default": 0.1
+    },
+    "pdf_n_cg": {
+      "description": "Max number of iterations for PDF",
+      "type": "integer",
+      "default": 30
+    },
+    "pdf_space": {
+      "description": "Domain for PDF dipole kernel (option only used for oblique B0 directions). can only have values of 'imagespace' or 'kspace'",
+      "type": "string",
+      "default": "imagespace",
+      "enum": [
+        "imagespace",
+        "kspace"
+      ]
+    },
+    "pdf_n_pad": {
+      "description": "Zero-padding that is added and removed for PDF processing",
+      "type": "integer",
+      "default": 40
+    },
+    "medi_max_iter": {
+      "description": "Max number of iterations for MEDI_L1",
+      "type": "integer",
+      "default": 10
+    },
+    "csf_flag_erode": {
+      "description": "Erosion flag for extract_all_CSF(). can only have values of 0 and 1",
+      "type": "integer",
+      "default": 1
+    },
+    "medi_tol_norm_ratio": {
+      "description": "Tolerance level for MEDI_L1",
+      "type": "number",
+      "default": 0.1
+    },
+    "medi_cg_verbose": {
+      "description": "Verbose flag for cg method in MEDI_L1",
+      "type": "integer",
+      "default": 0
+    },
+    "medi_cg_max_iter": {
+      "description": "Max number of iterations for cg method in MEDI_L1",
+      "type": "integer",
+      "default": 100
+    },
+    "medi_cg_tol": {
+      "description": "Tolerance level for cg method in MEDI_L1",
+      "type": "number",
+      "default": 0.1
+    },
+    "medi_lambda": {
+      "description": "L1 regularization parameter for MEDI_L1",
+      "type": "integer",
+      "default": 1000
+    },
+    "medi_msmv": {
+      "description": "Radius for msmv",
+      "type": "integer",
+      "default": 5
+    },
+    "load_nifti_common_prefix": {
+      "description": "common prefix for nifti files in temp_dcm2niix (should be empty string for dicom inputs)",
+      "type": "string",
+      "optional": true
+    },
+    "phase_corr": {
+      "description": "flag to apply removal of echo-dependent linear phase gradient to avoid non-2pi wrap-like artifacts (iField_correction.m). can only have values of 0 and 1",
+      "type": "integer",
+      "default": 1
+    },
+    "prefilter": {
+      "description": "Prefilter option for MEDI and msmv. possible values are: -1 for variable radius smv, 1 for fixed radius smv",
+      "type": "integer",
+      "default": -1
+    }
+  },
+  "inputs": {
+    "gre_data": {
+      "base": "file",
+      "type": {
+        "enum": [
+          "dicom"
+        ]
+      },
+      "description": "QSM dicom data containing only Gradient Echo data"
+    }
+  },
+  "command": "python3 /opt/process_QSM/flywheel/run.py"
+}

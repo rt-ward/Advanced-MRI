@@ -1,0 +1,22 @@
+FROM mriinvivo.azurecr.io/hd-bet:20.1
+
+ARG DEBIAN_FRONTEND="noninteractive"
+
+COPY fslcpgeom /usr/bin
+
+ENV PATH="/opt/miniconda3/bin:$PATH" \
+    ENTRYPT="/opt/start.sh"
+RUN apt-get update -qq \
+    && apt-get install -yq --no-install-recommends \
+         libopenblas-base \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && echo '#!/usr/bin/env bash' >> $ENTRYPT \
+    && echo 'set -e' >> $ENTRYPT \
+    && echo 'export USER="${USER:=`whoami`}"' >> $ENTRYPT \
+    && echo 'if [ $# -eq 1 ]; then' >> $ENTRYPT \
+    && echo '  hd-bet -i /input/$1.nii.gz;fslcpgeom /input/$1.nii.gz /input/"$1"_bet_mask.nii.gz' >> $ENTRYPT \
+    && echo 'else hd-bet -h;echo "Usage: hd-bet -i /input/\$scanKey.nii.gz";fi' >> $ENTRYPT \
+    && chmod u+x $ENTRYPT
+
+ENTRYPOINT ["/opt/start.sh"]

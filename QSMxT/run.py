@@ -118,16 +118,20 @@ def flywheel_run():
         "/qsm",
         "--premade",
         str(config.get("premade", "False")),
-        "--do_qsm",
-        "--do_swi",
-        "--do_segmentation",
         "--auto_yes",
     ]
+
+    for arg in ["do_qsm", "do_swi", "do_segmentation"]:
+        result = config.get(arg, "False")
+        if result :
+            qsmxt_cmd.append(f"--{arg}")
 
     # Append optional custom arguments
     extra_args = config.get("qsmxt_cmd_args", "")
     if extra_args:
         qsmxt_cmd += extra_args.split()
+
+    print (f"QSMxT {qsmxt_cmd}")
 
     run_cmd(qsmxt_cmd, description="QSMxT processing")
 

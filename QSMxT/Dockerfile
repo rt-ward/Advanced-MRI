@@ -3,6 +3,7 @@ FROM vnmd/qsmxt_8.2.0
 
 # install necessary software
 RUN pip3 install flywheel-sdk
+RUN npm install
 
 COPY run.py /flywheel/v0/run.py
 RUN chmod +x /flywheel/v0/run.py

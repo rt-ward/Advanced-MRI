@@ -1,0 +1,19 @@
+data/simulation/
+data/cosmos/
+data/healthy_subjects/
+data/hemo/
+data/old_hemo
+data/phantom/
+data/resfit/
+data/results/
+data/clinical_scoring/
+data/*
+figures/*
+results/
+total field/
+archive/
+figures/archive/
+text/MRM_mSMV
+text/
+code/mSMV_functions/archive
+key.txt

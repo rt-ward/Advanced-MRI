@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qsm-medi"
+version = "2.4.1"
+description = "Add your description here"
+requires-python = ">=3.8"
+dependencies = [
+    "nibabel==5.1.0",
+    "flywheel-sdk",
+    "fw-client",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py311"
+extend-exclude = ["src/hd-bet","src/mSMV-vkernel_250813","qsm_optimization"]
+
+[tool.ruff.lint]
+select = ["A", "B", "E", "W", "F", "I", "RUF", "SIM", "C90", "PLW0406", "COM818", "SLF001"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = [
+    "--cov=image_uploading",
+    "--cov=qsmxt",
+    "--cov-report=html",
+    "--cov-report=term-missing"
+]
+
+[tool.hatch.build.targets.wheel]
+      packages = ["build"]

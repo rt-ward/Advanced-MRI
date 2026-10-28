@@ -1,7 +1,7 @@
 {
   "name": "process-manager-qsm",
   "label": "Process Managment-qsm",
-  "description": "Performs MR-free cross-sectional amyloid PET processing on input BIDS PET NIfTI images reliant on tracer/status specific template data.",
+  "description": "Project-level Flywheel gear that scans acquisitions for QSM-classified files and launches the qsmxt and qsm-medi processing gears on each eligible acquisition.",
   "author": "Terry Ward",
   "cite": "Pending",
   "license": "Other",
@@ -9,15 +9,6 @@
   "source": "NA",
   "url": "NA",
   "version": "process-manager-qsm_0.2.0",
-  "environment": {
-    "FLYWHEEL": "/flywheel/v0",
-    "GPG_KEY": "A035C8C19219BA821ECEA86B64E628F8D684696D",
-    "LANG": "C.UTF-8",
-    "PATH": "/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-    "PWD": "/flywheel/v0",
-    "PYTHON_SHA256": "91bcdebfdde239a003ae93738a7fce0f9230fee5c4bc2b86f6e6e8c6f98aabe8",
-    "PYTHON_VERSION": "3.11.16"
-  },
   "custom": {
     "gear-builder": {
       "category": "analysis",

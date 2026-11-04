@@ -1,0 +1,33 @@
+{
+  "name": "pipeline-status",
+  "label": "Pipeline Status Report",
+  "description": "Reports which gears have run on a project and which failed, with image counts by scan type. Outputs are saved to the analysis and to project Attachments.",
+  "version": "0.1.2",
+  "author": "Noah Nicol",
+  "maintainer": "Noah Nicol <nnicol@wisc.edu>",
+  "license": "Other",
+  "source": "",
+  "url": "",
+  "cite": "",
+  "custom": {
+    "gear-builder": {
+      "category": "analysis",
+      "image": "pipeline-status:0.1.2"
+    },
+    "flywheel": {
+      "suite": "Reporting"
+    }
+  },
+  "environment": {
+    "FLYWHEEL": "/flywheel/v0",
+    "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  },
+  "inputs": {
+    "api-key": {
+      "base": "api-key",
+      "read-only": false
+    }
+  },
+  "config": {},
+  "command": "python /flywheel/v0/PipeLineStatus.py"
+}

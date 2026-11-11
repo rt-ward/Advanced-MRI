@@ -1,0 +1,76 @@
+{
+  "name": "mri-reface",
+  "label": "mri_reface: replace the face in MRI/PET/CT with an average face",
+  "description": "Runs mri_reface 0.3.5 (Schwarz et al., Mayo Clinic) to de-identify head scans by replacing the face with a population-average face instead of removing it. Accepts a NIfTI (.nii or .nii.gz) or a zipped single-series DICOM. Outputs the refaced NIfTI, refaced DICOM (for DICOM input) and before/after face renders. mri_reface is free for non-commercial research use only.",
+  "version": "0.1.0_0.3.5",
+  "author": "Christopher G. Schwarz (mri_reface); gear by R. Ward",
+  "maintainer": "R. Ward <rtward2@wisc.edu>",
+  "cite": "Schwarz CG, et al. Changing the face of neuroimaging research: Comparing a new MRI de-facing technique with popular alternatives. NeuroImage 2021. Schwarz CG, et al. Face recognition from research brain PET/MRI: an evaluation of re-identification risk and de-facing. NeuroImage 2023. doi:10.1016/j.neuroimage.2023.120199",
+  "license": "Other",
+  "url": "",
+  "source": "https://www.nitrc.org/projects/mri_reface",
+  "environment": {
+    "DEBIAN_FRONTEND": "noninteractive",
+    "FLYWHEEL": "/flywheel/v0",
+    "LANG": "en_US.UTF-8",
+    "LC_ALL": "en_US.UTF-8",
+    "LD_LIBRARY_PATH": "/opt/matlabruntime/v912/runtime/glnxa64:/opt/matlabruntime/v912/bin/glnxa64:/opt/matlabruntime/v912/sys/os/glnxa64:/opt/matlabruntime/v912/sys/opengl/lib/glnxa64:/opt/matlabruntime/v912/extern/bin/glnxa64",
+    "MCRROOT": "/opt/matlabruntime/v912/",
+    "PATH": "/opt/ants:/opt/ants:/opt/niftyreg/reg-io:/opt/niftyreg/reg-apps:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/dcm2niix:/usr/bin/mlrtapp",
+    "PWD": "/flywheel/v0",
+    "SHELL": "bash",
+    "SHLVL": "0",
+    "TZ": "Etc/UTC",
+    "_": "/usr/bin/printenv"
+  },
+  "custom": {
+    "gear-builder": {
+      "category": "converter",
+      "image": "mri-reface:0.1.0_0.3.5"
+    },
+    "flywheel": {
+      "suite": "De-identification"
+    }
+  },
+  "inputs": {
+    "input_file": {
+      "base": "file",
+      "description": "Scan to reface: a NIfTI (.nii or .nii.gz) or a zip of DICOM files from a single series (.dicom.zip / .zip).",
+      "optional": false,
+      "type": {
+        "enum": [
+          "nifti",
+          "dicom"
+        ]
+      }
+    }
+  },
+  "config": {
+    "imType": {
+      "type": "string",
+      "default": "T1",
+      "description": "Image type passed to mri_reface -imType (strongly recommended by the author). Known MRI/CT values: T1, T2, FLAIR, T2st, ASL, CT. For PET types, see 'run_mri_reface' help. Leave empty to let mri_reface decide."
+    },
+    "gzip_nifti": {
+      "type": "boolean",
+      "default": true,
+      "description": "Compress the refaced NIfTI output to .nii.gz."
+    },
+    "save_transforms": {
+      "type": "boolean",
+      "default": false,
+      "description": "Also save the registration files (affine .txt and warp .nii). Off by default: they are large and rarely needed."
+    },
+    "extra_args": {
+      "type": "string",
+      "default": "",
+      "description": "Additional mri_reface command-line arguments, passed through as-is."
+    },
+    "debug": {
+      "type": "boolean",
+      "default": false,
+      "description": "Log extra detail (detected command, environment, all files produced)."
+    }
+  },
+  "command": "python3 /flywheel/v0/run.py"
+}

@@ -5,11 +5,11 @@ A Flywheel gear that scans a project and launches the **QSMxT** and **QSM-MEDI**
 ## How it works
 
 1. The gear finds the project it was launched from and connects with the supplied API key.
-2. It reads all existing analyses in the project and records, for each gear and acquisition, whether a completed analysis exists.
+2. It reads all existing analyses in the project and records, for each gear and acquisition, whether a completed (job state `complete`) or in-progress (running/pending) analysis exists. If an analysis's job failed and Flywheel retried it, the retry chain is followed so the decision reflects the successor job's state.
 3. It walks every subject, session and acquisition and reads each file's classification.
 4. For each acquisition that contains at least one file with **Intent = QSM**, it decides whether to launch each enabled gear (see [Rerun behavior](#rerun-behavior)) and starts a new analysis on that acquisition.
 
-The gear only launches jobs. It does not wait for them or collect their results.
+The gear only launches jobs. It does not wait for them or collect their results. If a single gear launch fails with a Flywheel API error, that one launch is logged (with the gear name and acquisition) and skipped; the scan continues with the remaining acquisitions rather than aborting the whole run.
 
 ## Inputs
 
@@ -52,9 +52,9 @@ Each analysis is created on the acquisition containing the QSM files and labeled
 For each enabled gear and eligible acquisition:
 
 - With `process_all` enabled, the gear always runs.
-- Otherwise, the gear runs only if no **completed** analysis of that gear exists for the acquisition. Acquisitions that were never analyzed, or whose analyses failed, are launched.
+- Otherwise, the gear runs only if no **completed** (job state `complete`) and no **in-progress** (running or pending) analysis of that gear exists for the acquisition. Acquisitions that were never analyzed, or whose final job failed or was cancelled with no live retry, are launched.
 
-Note that an analysis that is still running or pending does not count as completed, so rerunning the manager while jobs are in progress can launch duplicates. Wait for running jobs to finish before rerunning.
+Because running and pending jobs count as "already processed", rerunning the manager while jobs are in progress does not launch duplicates for those acquisitions. A failed job that Flywheel has retried is followed to its successor, so a failed-then-retried analysis that is still running (or has since completed) is also treated as already processed and is not relaunched.
 
 ## Logging
 
@@ -65,4 +65,101 @@ Progress is written to stdout: the project name, and for each launch the acquisi
 - Requires all target gears (`qsmxt`, `qsm-medi`) to be installed and visible to the API key's user.
 - Acquisitions are matched to existing analyses by subject, session and acquisition label, so labels should be unique within a session.
 - Analyses that were uploaded rather than produced by a gear job are ignored when checking for previous results.
-- Depends on the `flywheel-sdk` and `fw-client` packages.
+- Depends on the `flywheel-sdk`, `fw-client`, and `fw-gear` packages.
+
+## Development
+
+This Flywheel gear is containerized and designed to run within the Flywheel platform. Unlike the processing gears it launches, this is a lightweight pip-based gear that only makes Flywheel API calls — it has no file inputs (only an `api-key` input) and spawns no subprocesses.
+
+### Prerequisites
+
+- Docker
+- [uv](https://docs.astral.sh/uv/) (Python package manager) for local linting
+- Flywheel CLI (`flyw`) for deployment
+
+### Building the Container
+
+The image is based on `python:3.12-slim`, pinned by SHA256 digest in the `Dockerfile` for reproducible builds. It runs as a non-root `flywheel` user and is launched via the manifest `command` (`python3 /flywheel/v0/run.py`).
+
+```bash
+cd ProcessManager
+docker build -t process-manager-qsm:local .
+```
+
+### Testing Locally
+
+The gear reads its configuration, `api-key` input, and run destination from the Flywheel gear context (via `fw-gear`), so it is normally exercised as a project-level analysis on `naccdata.flywheel.io` with the three config booleans (`process_all`, `do_qsmxt`, `do_qsm_medi`). See the [Flywheel Gear Development Guide](https://docs.flywheel.io/hc/en-us/articles/360008162214) for running a gear against a live project.
+
+For a quick import/compile check outside the container:
+
+```bash
+python3 -m py_compile run.py
+```
+
+### Development with uv
+
+For Python development outside the container:
+
+```bash
+# From repository root
+uv sync --group dev
+
+# Run linting
+uv run ruff check ProcessManager/
+
+# Format code
+uv run ruff format ProcessManager/
+```
+
+## Pre-deploy Checks
+
+Before deploying, run these checks from the repository root:
+
+```bash
+# Lint
+uv run ruff check ProcessManager/
+
+# Verify formatting
+uv run ruff format --check ProcessManager/
+
+# Lint the Dockerfile
+hadolint ProcessManager/Dockerfile
+
+# Build the Docker image (tags using manifest's custom.gear-builder.image)
+flyw gear build ProcessManager
+```
+
+## Deploying to Flywheel
+
+The gear is deployed to `naccdata.flywheel.io` using the Flywheel CLI (`flyw`).
+
+```bash
+# Log in (prompts for your API key)
+flyw login
+
+# Validate the gear manifest
+flyw gear --validate ProcessManager/manifest.json
+
+# Upload the gear (tags and pushes the locally built image)
+flyw gear upload ProcessManager/
+```
+
+The `flyw gear upload` command tags the local image (from `custom.gear-builder.image`
+in `manifest.json`) for the Flywheel registry and pushes it. Keep the manifest
+`version` and `custom.gear-builder.image` in sync when cutting a release.
+
+## Maintaining the Base Image
+
+This gear builds on the official `python:3.12-slim` image, pinned by SHA256
+digest in the `Dockerfile`. To move to a newer base:
+
+1. Pull the desired tag and resolve its digest:
+
+   ```bash
+   docker pull python:3.12-slim
+   docker inspect --format '{{index .RepoDigests 0}}' python:3.12-slim
+   ```
+
+2. Update the `FROM` line in `Dockerfile` with the new tag and digest.
+3. Rebuild and re-run the pre-deploy checks above.
+4. Bump the `version` field in `manifest.json` and `custom.gear-builder.image`.

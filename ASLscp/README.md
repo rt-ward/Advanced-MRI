@@ -61,7 +61,7 @@ These parameters can be provided via Flywheel config, command line flags, or wil
 | `ld` | Labeling duration (microseconds) | `-l` | Extracted from DICOM header |
 | `pld` | Post-labeling delay (microseconds) | `-p` | Extracted from DICOM header |
 | `nbs` | Number of background suppressions | `-n` | Extracted from DICOM header. Set to 1 if none. |
-| `m0_scale` | M0 scaling factor | `no flag` | Extracted from DICOM header |
+| `m0_scale` | M0 scaling factor | `-k` | Extracted from DICOM header |
 | `skip_extended` | Skip registration, atlas extraction, and PDF generation | `-e` | Default: false. When true, only outputs CBF map. |
 | `run_t1w_reg` | Register CBF map to provided T1w image. | `-r` | Default: false When true, registration of CBF map to T1w will be run. |
 
@@ -146,13 +146,15 @@ docker run -v /path/to/input:/flywheel/v0/input \
 |--------|-------------|
 | `-a` | Path to ASL DICOM zip or NIfTI file |
 | `-m` | Path to M0 DICOM zip or NIfTI file |
-| `-t` | Path to T1w xip or NIfTI file. |
+| `-t` | Path to T1w zip or NIfTI file. |
 | `-l` | Labeling duration (microseconds) |
 | `-p` | Post-labeling delay (microseconds) |
 | `-n` | Number of background suppressions |
+| `-k` | M0 scaling factor |
 | `-e` | Skip extended analysis (registration, atlas extraction, PDF) |
 | `-r` | Register CBF map to provided T1w image |
 | `-s` | Subject ID |
+| `-c` | Path to a config.json (defaults to `$FLYWHEEL/config.json`) |
 
 The config JSON file directly relates to Flywheel - it is not necessary for almost anything if this is being run locally.
 

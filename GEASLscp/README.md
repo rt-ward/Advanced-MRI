@@ -142,6 +142,7 @@ docker run -v /path/to/input:/flywheel/v0/input \
 | `-n` | Number of averages (number of label-control pairs) |
 | `-e` | Skip extended analysis (registration, atlas extraction, PDF) |
 | `-s` | Subject ID |
+| `-c` | Path to a config.json (defaults to `$FLYWHEEL/config.json`) |
 
 ## Examples of Uploading the Container as a Flywheel Gear
 

@@ -1,11 +1,37 @@
-import os
+"""Build the PDF report when quantitative T1 is not available."""
 import argparse
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Image, Paragraph, Spacer, PageBreak
+import logging
+import os
+
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import (
+    Image,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
+
+logger = logging.getLogger("aslscp.not1_pdf")
+
 
 def read_formatted_file(file_path):
+    """Read a pipe-delimited stats table into a list of tuples.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the formatted stats file. The header line is skipped.
+
+    Returns
+    -------
+    list
+        One tuple per data row, or an empty list if the file is missing.
+    """
     try:
         with open(file_path, 'r') as file:
             content = file.read().strip().split('\n')
@@ -24,11 +50,26 @@ def read_formatted_file(file_path):
         return []
 
 def generate_pdf(formatted_data, segmentation_images, output_path, mean_cbf_img=None, mean_cbf_bw_img=None, qt1_img=None, stats_path=None):
+    """Assemble the pipeline output PDF from CBF images and stats tables.
+
+    Parameters
+    ----------
+    formatted_data : dict
+        Mapping of segmentation prefix to its list of stats rows.
+    segmentation_images : dict
+        Mapping of segmentation prefix to its overlay image path.
+    output_path : str
+        Path where the generated PDF is written.
+    mean_cbf_img, mean_cbf_bw_img, qt1_img : str, optional
+        Paths to summary images included when present.
+    stats_path : str, optional
+        Directory containing the weighted stats table.
+    """
     doc = SimpleDocTemplate(output_path, pagesize=letter)
     elements = []
     styles = getSampleStyleSheet()
 
-    
+
 
     # Style: wrapped title for long strings
     title_style = ParagraphStyle('TitleWrap', parent=styles['Title'], wordWrap='CJK')
@@ -38,12 +79,12 @@ def generate_pdf(formatted_data, segmentation_images, output_path, mean_cbf_img=
     elements.append(Paragraph("ASL self-contained processing pipeline output", title_style))
     elements.append(Spacer(1, 24))
 
-    
+
     # === Injected block: metadata under the title ===
-    # Tries to read "metadata.txt" from the same directory as the output PDF.
-    # Each line should be in "Key: Value" format.
+    # Tries to read "metadata.json" from the same directory as the output PDF.
+    # The file's header section is in "Key: Value" format.
     try:
-        meta_file = os.path.join(os.path.dirname(output_path), "metadata.txt")
+        meta_file = os.path.join(os.path.dirname(output_path), "metadata.json")
         if os.path.exists(meta_file):
             with open(meta_file, "r") as _mf:
                 _lines = [ln.strip() for ln in _mf.read().strip().splitlines() if ln.strip()]
@@ -72,9 +113,9 @@ def generate_pdf(formatted_data, segmentation_images, output_path, mean_cbf_img=
             ]))
             elements.append(_table)
             elements.append(Spacer(1, 18))
-    except Exception as _e:
-        # Fail silently to preserve original behavior
-        pass
+    except (OSError, ValueError) as _e:
+        # Metadata panel is optional; log and continue building the report.
+        logger.warning(f"Could not render metadata panel from {meta_file!r}: {_e}")
     # === End injected block ===
 # Add mean_CBF and qT1 images if provided
     if mean_cbf_img and os.path.exists(mean_cbf_img):
@@ -114,7 +155,7 @@ def generate_pdf(formatted_data, segmentation_images, output_path, mean_cbf_img=
             ('GRID', (0,0), (-1,-1), 1, colors.black),
         ]))
         elements.append(table)
-    
+
         elements.append(Spacer(1, 36))
 
     # Add segmentation tables, each on a new page
@@ -162,6 +203,7 @@ def generate_pdf(formatted_data, segmentation_images, output_path, mean_cbf_img=
     print(f"PDF generated and saved at {output_path}")
 
 def main():
+    """Parse CLI arguments and generate the pipeline output PDF."""
     parser = argparse.ArgumentParser(description='Create PDF file to evaluate pipeline outputs.')
     parser.add_argument('-viz', type=str, help="The path to the viz folder.")
     parser.add_argument('-stats', type=str, help="The path to the stats folder.")
@@ -172,7 +214,6 @@ def main():
 
     viz_path = args.viz
     stats_path = args.stats
-    seg_folder = args.seg_folder
     seg_list = args.seg
     outputdir = args.out
 

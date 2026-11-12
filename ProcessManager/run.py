@@ -12,12 +12,13 @@ from dataclasses import dataclass, field
 
 import flywheel
 from fw_client import FWClient
+from fw_gear.context import GearContext
 
 ###############################################################################
 # Logging Setup
 ###############################################################################
 
-logger = logging.getLogger("fw_uploader")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 _handler = logging.StreamHandler(sys.stdout)
@@ -30,18 +31,23 @@ logger.addHandler(_handler)
 
 
 class FlywheelConnector:
-    """Holds the REST and SDK clients plus the project being processed."""
+    """Holds the REST and SDK clients plus the project being processed.
 
-    def __init__(self, api_key: str):
+    The SDK client is provided by the gear context (``fw-gear`` builds it from
+    the ``api-key`` input). The raw REST client is created here from the same
+    API key, since ``fw-gear`` does not expose one.
+    """
+
+    def __init__(self, sdk_client: flywheel.Client, api_key: str):
         self.api_key = api_key
         self.project = None
         self.rest_client = FWClient(api_key=api_key)
-        self.sdk_client = flywheel.Client(api_key)
+        self.sdk_client = sdk_client
 
     def set_project_by_id(self, project_id: str) -> None:
         try:
             self.project = self.sdk_client.get_project(project_id)
-        except Exception:
+        except flywheel.rest.ApiException:
             logger.exception("Cannot fetch project '%s' via SDK", project_id)
             raise
         logger.info("Project set: %s", self.project.label)
@@ -54,12 +60,32 @@ class FlywheelConnector:
 AcqKey = tuple  # (subject label, session label, acquisition label)
 
 
-class AnalysisResults:
-    """Completion timestamps of existing analyses, per gear and acquisition.
+#: Canonical Flywheel job states. Source of truth is
+#: ``flywheel.models.job_state.JobState`` (flywheel-sdk 22.4.0: a ``str``-enum
+#: with exactly five values ``pending, running, failed, complete, cancelled``;
+#: no ``held`` and no ``retried`` state). "retried" is derived at runtime from a
+#: ``failed`` job whose ``retried`` timestamp is set and whose successor is found
+#: via ``previous_job_id``. Kept as validated string literals (not the enum
+#: import) to match the raw-REST job dicts read here and the in-house JobPoll
+#: pattern this logic is ported from.
+_STATE_COMPLETE = "complete"
+_IN_PROGRESS_STATES = ("pending", "running")
 
-    ``results[gear_name][(subject, session, acquisition)]`` is the job's
-    completion time, or ``None`` if no analysis has completed successfully
-    (this includes analyses that failed or are still running).
+#: Maximum number of retries Flywheel performs for a job, bounding how far the
+#: retry chain is followed (mirrors ``JobPoll.is_job_complete``).
+_MAX_JOB_RETRIES = 3
+
+
+class AnalysisResults:
+    """Existing analyses that are completed or in progress, per gear/acquisition.
+
+    ``results[gear_name][(subject, session, acquisition)]`` is a non-``None``
+    marker when an analysis of that gear is already **completed** (job state is
+    ``complete``) or **in progress** (its ``pending``/``running`` state),
+    following any retry chain so a failed-and-retried job is judged by its
+    successor's state. It is ``None`` when no such analysis exists (this
+    includes analyses whose final job failed or was cancelled with no live
+    retry, which may be relaunched).
     """
 
     def __init__(self, fc: FlywheelConnector):
@@ -83,12 +109,84 @@ class AnalysisResults:
                 self._label("acquisitions", parents.get("acquisition")),
             )
 
-            job = fc.rest_client.get(f"/api/jobs/{job_id}")
-            finished = (job.get("transitions") or {}).get("complete")
+            marker = self._dedup_marker(job_id)
 
             per_gear = self.results.setdefault(gear_info.get("name"), {})
             if per_gear.get(key) is None:
-                per_gear[key] = finished
+                per_gear[key] = marker
+
+    def _dedup_marker(self, job_id: str):
+        """Return a non-``None`` marker if the analysis is done or in flight.
+
+        The decision is keyed on the job **state** (``complete`` or
+        ``pending``/``running``), not on the presence of a
+        ``transitions.complete`` timestamp. A ``failed`` job that Flywheel has
+        retried is followed to its successor via ``previous_job_id`` (ported
+        from ``JobPoll.is_job_complete``), so a retried-and-still-running or
+        retried-and-complete analysis is treated as already processed and is
+        not relaunched as a duplicate. A final state of ``failed`` or
+        ``cancelled`` with no live retry returns ``None`` (relaunchable).
+        """
+        state = self._final_job_state(job_id)
+        if state == _STATE_COMPLETE or state in _IN_PROGRESS_STATES:
+            return state
+        return None
+
+    def _final_job_state(self, job_id: str):
+        """Resolve a job's effective state, following any retry chain.
+
+        While the current job is ``failed`` and has been retried
+        (``retried`` timestamp set), hop forward to the successor job
+        (``previous_job_id="<id>"``), bounded to the Flywheel retry maximum.
+        Returns the state string of the final job in the chain, or ``None`` if
+        the original job cannot be read.
+        """
+        job = self._get_job(job_id)
+        if job is None:
+            return None
+
+        hops = 0
+        while (
+            self._job_state(job) == "failed"
+            and self._job_retried(job) is not None
+            and hops < _MAX_JOB_RETRIES
+        ):
+            successor = self._find_successor(self._job_id(job))
+            if successor is None:
+                # Marked retried but successor not found; stop and use this state.
+                break
+            job = successor
+            hops += 1
+
+        return self._job_state(job)
+
+    def _get_job(self, job_id: str):
+        """Fetch a job by id via the SDK ``jobs`` finder (typed ``Job``)."""
+        try:
+            return self._fc.sdk_client.jobs.find_first(f"_id={job_id}")
+        except flywheel.rest.ApiException:
+            logger.exception("Cannot fetch job '%s'", job_id)
+            return None
+
+    def _find_successor(self, job_id: str):
+        """Find the job that superseded ``job_id`` when it was retried."""
+        try:
+            return self._fc.sdk_client.jobs.find_first(f'previous_job_id="{job_id}"')
+        except flywheel.rest.ApiException:
+            logger.exception("Cannot look up retry successor of job '%s'", job_id)
+            return None
+
+    @staticmethod
+    def _job_state(job):
+        return getattr(job, "state", None)
+
+    @staticmethod
+    def _job_retried(job):
+        return getattr(job, "retried", None)
+
+    @staticmethod
+    def _job_id(job):
+        return getattr(job, "id", None)
 
     def _label(self, kind: str, obj_id) -> str:
         """Return the label of a subject/session/acquisition, with caching."""
@@ -249,7 +347,8 @@ class AcquisitionClassification:
             return False
         if self.process_all:
             return True
-        # Not analyzed yet, or no analysis has completed
+        # Not analyzed yet, or no completed/in-progress analysis exists
+        # (in-progress now including a failed job whose retry is still running).
         return analyses.for_gear(tool_cls.gear_name).get(key) is None
 
     def _launch(self, tool_cls, enabled, key, label, qsm_files, structural, analyses):
@@ -262,12 +361,22 @@ class AcquisitionClassification:
             )
             return
 
-        tool = tool_cls(self.fc, label)
-        if structural:
-            tool.set_structural(structural)
-        for file_info in qsm_files:
-            tool.add_qsm_input(file_info)
-        tool.run()
+        # Guard this single gear-launch attempt (SDK get/lookup/run for one
+        # gear on one acquisition) so a transient Flywheel API failure is
+        # logged and skipped rather than aborting the whole project scan. The
+        # loop in launch_gears then proceeds to the next gear/acquisition.
+        try:
+            tool = tool_cls(self.fc, label)
+            if structural:
+                tool.set_structural(structural)
+            for file_info in qsm_files:
+                tool.add_qsm_input(file_info)
+            tool.run()
+        except flywheel.rest.ApiException:
+            logger.exception(
+                "Skipping %s launch for %s: Flywheel API error",
+                tool_cls.gear_name, label,
+            )
 
 
 ###############################################################################
@@ -275,19 +384,24 @@ class AcquisitionClassification:
 ###############################################################################
 
 
-def main() -> None:
-    context = flywheel.GearContext()
-    config_opts = context.config
+def _get_api_key(context: GearContext) -> str:
+    """Return the API key supplied via the gear's ``api-key`` input."""
+    for inp in context.config.inputs.values():
+        if inp.get("base") == "api-key" and inp.get("key"):
+            return inp["key"]
+    raise ValueError("The 'api-key' gear input is required")
 
-    analysis = context.client.get_analysis(context.destination["id"])
+
+def main(context: GearContext) -> None:
+    config_opts = context.config.opts
+
+    sdk_client = context.client
+    analysis = sdk_client.get_analysis(context.config.destination["id"])
     project_id = analysis.parent["id"]
 
-    api_key_input = context.get_input("api-key")
-    api_key = api_key_input["key"] if api_key_input else None
-    if not api_key:
-        raise ValueError("The 'api-key' gear input is required")
+    api_key = _get_api_key(context)
 
-    fc = FlywheelConnector(api_key)
+    fc = FlywheelConnector(sdk_client, api_key)
     fc.set_project_by_id(project_id)
 
     analyses = AnalysisResults(fc)
@@ -296,4 +410,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    with GearContext() as gear_context:
+        main(gear_context)

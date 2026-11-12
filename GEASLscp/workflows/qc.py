@@ -1,10 +1,24 @@
-import os
+"""Build the QC PDF from GE ASL pipeline outputs."""
 import argparse
+import os
+
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Image, Paragraph, Spacer, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Image, PageBreak, Paragraph, SimpleDocTemplate, Spacer
+
 
 def generate_pdf(segmentation_images, output_path, mean_cbf_bw_img=None):
+    """Assemble the QC PDF from mean-CBF and segmentation images.
+
+    Parameters
+    ----------
+    segmentation_images : dict
+        Mapping of segmentation name to its overlay image path.
+    output_path : str
+        Path where the generated PDF is written.
+    mean_cbf_bw_img : str, optional
+        Path to the mean CBF image included when present.
+    """
     doc = SimpleDocTemplate(output_path, pagesize=letter)
     elements = []
     styles = getSampleStyleSheet()
@@ -35,6 +49,7 @@ def generate_pdf(segmentation_images, output_path, mean_cbf_bw_img=None):
     print(f"PDF generated and saved at {output_path}")
 
 def main():
+    """Parse CLI arguments and generate the QC PDF."""
     parser = argparse.ArgumentParser(description='Create PDF file to evaluate pipeline outputs.')
     parser.add_argument('-viz', type=str, help="The path to the viz folder.")
     parser.add_argument('-out', type=str, help="The output path.")
@@ -43,7 +58,6 @@ def main():
     args = parser.parse_args()
 
     viz_path = args.viz
-    seg_folder = args.seg_folder
     seg_list = args.seg
     outputdir = args.out
 

@@ -1,15 +1,13 @@
-import sys
-import os
-import logging
+"""Build visualization images from processed ASL pipeline outputs."""
 import argparse
+import os
+
+import matplotlib.pyplot as plt
 import nibabel as nb
-import shutil
-from nibabel.processing import smooth_image
 import nilearn
 import nilearn.plotting
-import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 import numpy as np
+from matplotlib.colors import ListedColormap
 
 parser = argparse.ArgumentParser(description='Take processed images and create visualizations.')
 

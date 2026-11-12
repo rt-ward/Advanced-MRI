@@ -1,10 +1,10 @@
-import os
-import numpy as np
-import nibabel as nib
-import matplotlib.pyplot as plt
-import scipy 
+"""Fit a quantitative T1 map from inversion-recovery M0 data."""
 import argparse
-import sys
+import os
+
+import nibabel as nib
+import numpy as np
+import scipy
 
 parser = argparse.ArgumentParser(description='get dcm parameters from the pipeline script')
 
@@ -44,11 +44,11 @@ nii = nib.load(mask)
 nii.header.set_data_dtype(np.float32)
 nii_data = np.asarray(t1, dtype=np.float32)
 nii_img = nib.Nifti1Image(nii_data, nii.affine,nii.header)
-name = out_dir + '/t1.nii.gz'
+name = os.path.join(out_dir, 't1.nii.gz')
 nib.save(nii_img, name)
 
 nii_data_m0 = ref_data[:,:,:,0]
 nii_data_m0 = np.asarray(nii_data_m0, dtype=np.float32)
 nii_img_m0 = nib.Nifti1Image(nii_data_m0, nii.affine,nii.header)
-name_m0 = out_dir + '/m0.nii.gz'
+name_m0 = os.path.join(out_dir, 'm0.nii.gz')
 nib.save(nii_img_m0, name_m0)

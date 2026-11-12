@@ -145,6 +145,28 @@ is_valid_number() {
     [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]]
 }
 
+# Safely extract a zip archive into a destination directory.
+# Rejects entries with absolute paths or ".." components (zip-slip / path
+# traversal) before extracting anything, so a malicious archive cannot write
+# outside the destination.
+safe_unzip() {
+    local zip_file="$1"
+    local dest_dir="$2"
+
+    [ -f "$zip_file" ] || die "Archive not found: $zip_file"
+    mkdir -p "$dest_dir"
+
+    local entry
+    while IFS= read -r entry; do
+        # Reject absolute paths and any path containing a ".." component.
+        if [[ "$entry" == /* ]] || [[ "$entry" == ".." || "$entry" == ../* || "$entry" == */../* || "$entry" == */.. ]]; then
+            die "Unsafe path in archive '$zip_file' (possible zip-slip): $entry"
+        fi
+    done < <(unzip -Z1 "$zip_file")
+
+    unzip -o -d "$dest_dir" "$zip_file"
+}
+
 # ==============================================================================
 # BIDS FUNCTIONS
 # ==============================================================================
@@ -355,7 +377,7 @@ preprocess_data() {
         asl_file="${asl_dcm_dir}/$(basename "$asl_zip")"
     elif file "$asl_zip" | grep -q 'Zip archive data'; then
         # DICOM zip
-        unzip -d "$asl_dcm_dir" "$asl_zip"
+        safe_unzip "$asl_zip" "$asl_dcm_dir"
         dcm2niix -f %d -b y -o "${asl_dcm_dir}/" "$asl_dcm_dir"
         nifti_input=false
     else
@@ -370,7 +392,7 @@ preprocess_data() {
         m0_file="${m0_dcm_dir}/$(basename "$m0_zip")"
     elif file "$m0_zip" | grep -q 'Zip archive data'; then
         # DICOM zip
-        unzip -d "$m0_dcm_dir" "$m0_zip"
+        safe_unzip "$m0_zip" "$m0_dcm_dir"
         dcm2niix -f %d -b y -o "${m0_dcm_dir}/" "$m0_dcm_dir"
     else
         die "M0 input must be a DICOM zip file or NIfTI file (.nii or .nii.gz)"
@@ -585,7 +607,7 @@ preprocess_t1w() {
     elif file "$t1w_input" | grep -q 'Zip archive data'; then
         # DICOM zip - extract and convert
         log "Detected DICOM zip for T1w - running dcm2niix"
-        unzip -d "$t1w_dcm_dir" "$t1w_input"
+        safe_unzip "$t1w_input" "$t1w_dcm_dir"
         dcm2niix -f %d -b y -o "${t1w_dcm_dir}/" "$t1w_dcm_dir"
         t1w_file=$(find "$t1w_dcm_dir" -maxdepth 1 -type f \( -name "*.nii" -o -name "*.nii.gz" \) | head -n 1)
         if [ -z "$t1w_file" ]; then
@@ -832,7 +854,12 @@ calculate_weighted_rcbf() {
 
     # White Matter
     if [[ -n "$white_matter_weighted" && "$white_matter_weighted" =~ ^[0-9.]+$ ]]; then
-        white_matter_vox=$(echo "$white_right_vox + $white_right_vox" | bc -l)
+        # NACCDATA REVIEW: was "$white_right_vox + $white_right_vox" (right counted
+        # twice, left dropped) for a row labeled "L+R". Changed to left + right to
+        # match white_matter_weighted (line ~796) and every other L+R row.
+        # AUTHOR CONFIRMATION NEEDED: confirm this was an unintended copy-paste and
+        # left+right is the intended white-matter voxel total.
+        white_matter_vox=$(echo "$white_left_vox + $white_right_vox" | bc -l)
         echo "White_Matter L+R | $white_matter_weighted | $white_matter_vox" >> "$weighted_rcbf"
     else
         log "White_Matter_L+R value is not a number"
@@ -855,9 +882,6 @@ calculate_weighted_rcbf() {
     fi
 
     cat "$weighted_rcbf"
-
-    # Calculate reference CBF values
-    wholebrain_cbf=$(sed -n 's/[^0-9]*\([0-9]\+\).*/\1/p; q' "${stats_dir}/cbf_wholebrain.txt")
 
     # Add ratio columns to extracted file
     local temp_file="${stats_dir}/temp_ratio_calc.txt"

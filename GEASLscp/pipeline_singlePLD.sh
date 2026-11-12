@@ -134,6 +134,28 @@ is_valid_number() {
     [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]]
 }
 
+# Safely extract a zip archive into a destination directory.
+# Rejects entries with absolute paths or ".." components (zip-slip / path
+# traversal) before extracting anything, so a malicious archive cannot write
+# outside the destination.
+safe_unzip() {
+    local zip_file="$1"
+    local dest_dir="$2"
+
+    [ -f "$zip_file" ] || die "Archive not found: $zip_file"
+    mkdir -p "$dest_dir"
+
+    local entry
+    while IFS= read -r entry; do
+        # Reject absolute paths and any path containing a ".." component.
+        if [[ "$entry" == /* ]] || [[ "$entry" == ".." || "$entry" == ../* || "$entry" == */../* || "$entry" == */.. ]]; then
+            die "Unsafe path in archive '$zip_file' (possible zip-slip): $entry"
+        fi
+    done < <(unzip -Z1 "$zip_file")
+
+    unzip -o -d "$dest_dir" "$zip_file"
+}
+
 # Extract a value and voxel count from a formatted stats file
 extract_region_stats() {
     local file="$1"
@@ -194,7 +216,7 @@ preprocess_data() {
         fi
     elif file "$asl_zip" | grep -q 'Zip archive data'; then
         # DICOM zip
-        unzip -d "$asl_dcm_dir" "$asl_zip"
+        safe_unzip "$asl_zip" "$asl_dcm_dir"
         dcm2niix -f %d -b y -o "${asl_dcm_dir}/" "$asl_dcm_dir"
         nifti_input=false
     else

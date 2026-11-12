@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geaslscp"
+version = "0.2.4"
+description = "GE ASL self-contained processing pipeline for Flywheel"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+
+dependencies = [
+    "numpy==1.26.4",
+    "scipy==1.15.3",
+    "nibabel==5.4.2",
+    "matplotlib==3.10.9",
+    "fw-gear[sdk]==0.3.7",
+    "reportlab==5.0.1",
+    "nilearn==0.14.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["workflows*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "BLE", "D"]
+ignore = ["D203", "D213"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"

@@ -12,22 +12,22 @@
     "ld": {
       "description": "labeling delay",
       "type": "number",
-      "optional": "true"
+      "optional": true
     },
     "pld": {
       "description": "post-labeling delay",
       "type": "number",
-      "optional": "true"
+      "optional": true
     },
     "avg": {
       "description": "number of averages",
       "type": "integer",
-      "optional": "true"
+      "optional": true
     },
     "skip_extended": {
       "description": "Skip registration, atlas extraction, and PDF generation. Only output CBF map.",
       "type": "boolean",
-      "optional": "true"
+      "optional": true
     }
   },
   "license": "MIT",

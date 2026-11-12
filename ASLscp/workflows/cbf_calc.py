@@ -1,9 +1,9 @@
-import os
-import numpy as np
-import nibabel as nib
-import subprocess
+"""Compute CBF from ASL and M0 images using the pcASL kinetic model."""
 import argparse
-import sys
+import os
+
+import nibabel as nib
+import numpy as np
 
 parser = argparse.ArgumentParser(description='get dcm parameters from the pipeline script')
 
@@ -44,7 +44,6 @@ cbf = cbf * mask_data
 modified_img = nib.Nifti1Image(cbf, nib.load(namemask).affine, nib.load(namemask).header)
 
 out_dir = args.out
-print(out_dir)
 nameout = os.path.join(out_dir, 'cbf.nii.gz')
 nib.save(modified_img, nameout)
 

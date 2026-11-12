@@ -1,37 +1,49 @@
-import sys
-import os
-import logging
-import flywheel
+"""Extract Flywheel run metadata and write it to the pipeline work directory.
+
+Called by pipeline_singlePLD.sh as:
+    python3 flywheel_context.py -dir <work_dir>
+
+Uses the fw-gear GearContext (rather than the raw flywheel SDK GearContext) to
+obtain the SDK client and the destination container, then walks the
+subject/session/project hierarchy to record run metadata as metadata.json.
+"""
+
+import argparse
 import json
-import glob
-import shutil
-from pathlib import Path
+import logging
+import os
 from datetime import datetime
 
-print(sys.path)
+import flywheel
+from fw_gear.context import GearContext
+
+# get directory of metadata file
+parser = argparse.ArgumentParser(description='get location of metadata file')
+parser.add_argument('-dir', type=str, help='The directory where the metadata file is.')
+args = parser.parse_args()
 
 # logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('aslscp')
 logger.info("=======: ASL gear :=======")
 
-with flywheel.GearContext() as context:
+with GearContext() as context:
     # Setup basic logging
     context.init_logging()
-    config = context.config
-    analysis_id = context.destination['id']
-    gear_output_dir = context.output_dir
-    
-    # Fix the working directory path issue
-    working_dir = Path(gear_output_dir).resolve().parent / f"{Path(gear_output_dir).name}_work"
-    working_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Set workdir for compatibility
-    workdir = str(working_dir)
 
-    # Get relevant container objects
-    fw = flywheel.Client(context.get_input('api_key')['key'])
-    analysis_container = fw.get(analysis_id)
+    # Use the working directory passed in by the pipeline. Fall back to the
+    # gear output dir if -dir was not supplied.
+    if args.dir:
+        workdir = args.dir
+    else:
+        workdir = str(context.output_dir)
+
+    # SDK client (built from the api-key input) and destination container.
+    fw = context.client
+    analysis_container = context.config.get_destination_container()
+    analysis_id = analysis_container.id
+
+    # Walk the container hierarchy for labels.
     project_container = fw.get(analysis_container.parents['project'])
     session_container = fw.get(analysis_container.parent['id'])
     subject_container = fw.get(session_container.parents['subject'])
@@ -40,10 +52,10 @@ with flywheel.GearContext() as context:
     session_label = session_container.label
     subject_label = subject_container.label
     project_label = project_container.label
-    
+
     # Get current runtime timestamp
     gear_run_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+
     # Extract scan date from session label
     # Expected format: ${subject label}x${scan date}x3Tx${studyname}
     scan_date = "Unknown"
@@ -56,10 +68,10 @@ with flywheel.GearContext() as context:
         else:
             logger.warning(f"Session label format unexpected: {session_label}")
             logger.warning("Expected format: subjectxScanDatex3TxStudyName")
-    except Exception as e:
+    except (AttributeError, IndexError) as e:
         logger.warning(f"Could not parse scan date from session label '{session_label}': {e}")
         scan_date = "Unknown"
-    
+
     # Get acquisition label - need to determine which acquisition this analysis belongs to
     acquisition_label = "Unknown"
     try:
@@ -75,7 +87,7 @@ with flywheel.GearContext() as context:
                 # Take the first acquisition or implement logic to select the right one
                 acquisition_label = acquisitions[0].label
                 logger.info(f"Multiple acquisitions found, using: {acquisition_label}")
-    except Exception as e:
+    except (KeyError, AttributeError, flywheel.rest.ApiException) as e:
         logger.warning(f"Could not determine acquisition label: {e}")
         acquisition_label = "Unknown"
 
@@ -83,8 +95,8 @@ with flywheel.GearContext() as context:
     sessions = [session_container.label]
 
     # Define the output file path
-    INFO_OUT = os.path.join(workdir, "metadata.txt")
-    
+    INFO_OUT = os.path.join(workdir, "metadata.json")
+
     # Create metadata dictionary
     metadata = {
         "project_label": project_label,
@@ -95,7 +107,7 @@ with flywheel.GearContext() as context:
         "scan_date": scan_date,
         "gear_run_datetime": gear_run_datetime
     }
-    
+
     # Write metadata to text file
     try:
         with open(INFO_OUT, 'w') as f:
@@ -108,16 +120,15 @@ with flywheel.GearContext() as context:
             f.write(f"Scan Date: {scan_date}\n")
             f.write(f"Gear Run Date/Time: {gear_run_datetime}\n")
             f.write("========================\n")
-            
+
             # Also write as JSON for machine readability
             f.write("\nJSON Format:\n")
             json.dump(metadata, f, indent=2)
             f.write("\n")
-        
+
         logger.info(f"Metadata written to: {INFO_OUT}")
         logger.info(f"Metadata content: {metadata}")
-        
-    except Exception as e:
+
+    except OSError as e:
         logger.error(f"Failed to write metadata file: {e}")
         raise
-
